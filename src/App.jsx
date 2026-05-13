@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 // ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
 // Reemplaza con tus valores de Supabase → Project Settings → API
-const SUPABASE_URL  = "https://hvkswkpuphhiskxqrrke.supabase.co/rest/v1/";
+const SUPABASE_URL  = "https://hvkswkpuphhiskxqrrke.supabase.co";
 const SUPABASE_ANON = "sb_publishable__5xZzZslfmIu9I-jcmAuXA_D_Uv-0y6";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
