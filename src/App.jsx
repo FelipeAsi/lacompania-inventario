@@ -15,8 +15,8 @@ const hoy = () => new Date().toISOString().split("T")[0];
 
 // ─── CREDENCIALES (Supabase Auth) ─────────────────────────────────────────────
 // Estas cuentas deben crearse en Supabase → Authentication → Users
-// admin@lacompania.cl   / admin123   → user_metadata: { rol: "admin",   nombre: "Administrador"   }
-// cocina@lacompania.cl  / cocina123  → user_metadata: { rol: "usuario",  nombre: "Usuario Cocina"  }
+// //admin@lacompania.cl//   / admin123   → user_metadata: { rol: "admin",   nombre: "Administrador"   }
+// //cocina@lacompania.cl//  / cocina123  → user_metadata: { rol: "usuario",  nombre: "Usuario Cocina"  }
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
 function Login({ onLogin }) {
