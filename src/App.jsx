@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 // ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
 // Reemplaza con tus valores de Supabase → Project Settings → API
 const SUPABASE_URL  = "https://hvkswkpuphhiskxqrrke.supabase.co";
-const SUPABASE_ANON = "sb_publishable__5xZzZslfmIu9I-jcmAuXA_D_Uv-0y6";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2a3N3a3B1cGhoaXNreHFycmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTc2MTEsImV4cCI6MjA5NDE5MzYxMX0.vB2v-AivuGgxE-eb_YyUvw56RfGmsG2z_OtWXD7K4Bg";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
