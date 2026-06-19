@@ -160,7 +160,7 @@ function Sistema({ sesion, onLogout }) {
     setGuardando(true);
     const prod = mp.find(p=>p.nombre===fMP.nombre);
     const cant = parseFloat(fMP.cantidad);
-    const nuevoStock = fMP.tipo==="entrada" ? prod.stock+cant : Math.max(0,prod.stock-cant);
+    const nuevoStock = fMP.tipo==="entrada" ? Number(prod.stock)+cant : Math.max(0,Number(prod.stock)-cant);
 
     await supabase.from("movimientos_mp").insert({
       fecha:fMP.fecha, tipo:fMP.tipo, nombre:fMP.nombre,
@@ -187,12 +187,12 @@ function Sistema({ sesion, onLogout }) {
       if (!fPor.mpUsada||!fPor.cantMP){mostrar("Indica el producto utilizado y su cantidad.","error");setGuardando(false);return;}
       const cantMPn = parseFloat(fPor.cantMP);
       const mpP = mp.find(p=>p.nombre===fPor.mpUsada);
-      if (!mpP||mpP.stock<cantMPn){mostrar(`Stock insuficiente de ${fPor.mpUsada}.`,"error");setGuardando(false);return;}
+      if (!mpP||Number(mpP.stock)<cantMPn){mostrar(`Stock insuficiente de ${fPor.mpUsada}.`,"error");setGuardando(false);return;}
 
       // Descontar MP
-      await supabase.from("productos").update({stock:Math.max(0,mpP.stock-cantMPn)}).eq("nombre",fPor.mpUsada);
+      await supabase.from("productos").update({stock:Math.max(0,Number(mpP.stock)-cantMPn)}).eq("nombre",fPor.mpUsada);
       // Sumar porciones
-      await supabase.from("porciones").update({stock:por.stock+cant}).eq("nombre",fPor.nombre);
+      await supabase.from("porciones").update({stock:Number(por.stock)+cant}).eq("nombre",fPor.nombre);
       // Mov proceso
       await supabase.from("movimientos_por").insert({
         fecha:fPor.fecha, tipo:"proceso", nombre:fPor.nombre,
@@ -212,7 +212,7 @@ function Sistema({ sesion, onLogout }) {
       }
       mostrar(`Proceso registrado: ${cant} porciones${mermaKg>0?` + ${mermaKg} ${mpP.unidad} merma`:""}.`);
     } else {
-      await supabase.from("porciones").update({stock:Math.max(0,por.stock-cant)}).eq("nombre",fPor.nombre);
+      await supabase.from("porciones").update({stock:Math.max(0,Number(por.stock)-cant)}).eq("nombre",fPor.nombre);
       await supabase.from("movimientos_por").insert({
         fecha:fPor.fecha, tipo:fPor.tipo, nombre:fPor.nombre,
         cantidad:cant, unidad:por.unidad, turno:fPor.turno,
@@ -260,7 +260,9 @@ function Sistema({ sesion, onLogout }) {
     setGuardando(true);
     const prod = mp.find(p=>p.nombre===m.nombre);
     if (prod) {
-      const nuevoStock = m.tipo==="entrada" ? Math.max(0,prod.stock-m.cantidad) : prod.stock+m.cantidad;
+      const stockActual = Number(prod.stock);
+      const cant = Number(m.cantidad);
+      const nuevoStock = m.tipo==="entrada" ? Math.max(0,stockActual-cant) : stockActual+cant;
       await supabase.from("productos").update({stock:nuevoStock}).eq("id",prod.id);
     }
     await supabase.from("movimientos_mp").delete().eq("id",m.id);
@@ -275,12 +277,14 @@ function Sistema({ sesion, onLogout }) {
     setGuardando(true);
     const por = porción.find(p=>p.nombre===m.nombre);
     if (por) {
-      const nuevoStock = m.tipo==="proceso" ? Math.max(0,por.stock-m.cantidad) : por.stock+m.cantidad;
+      const stockActual = Number(por.stock);
+      const cant = Number(m.cantidad);
+      const nuevoStock = m.tipo==="proceso" ? Math.max(0,stockActual-cant) : stockActual+cant;
       await supabase.from("porciones").update({stock:nuevoStock}).eq("id",por.id);
     }
-    if (m.tipo==="proceso" && m.mp_usada && m.cant_mp>0) {
+    if (m.tipo==="proceso" && m.mp_usada && Number(m.cant_mp)>0) {
       const prodUsado = mp.find(p=>p.nombre===m.mp_usada);
-      if (prodUsado) await supabase.from("productos").update({stock:prodUsado.stock+m.cant_mp}).eq("id",prodUsado.id);
+      if (prodUsado) await supabase.from("productos").update({stock:Number(prodUsado.stock)+Number(m.cant_mp)}).eq("id",prodUsado.id);
     }
     await supabase.from("movimientos_por").delete().eq("id",m.id);
     await Promise.all([reMP(),rePor(),reMPor()]);
@@ -761,7 +765,7 @@ function Sistema({ sesion, onLogout }) {
                     {fPor.mpUsada&&fPor.cantMP&&(()=>{
                       const mpP=mp.find(p=>p.nombre===fPor.mpUsada);
                       const usado=parseFloat(fPor.cantMP)||0;
-                      const restante=(mpP.stock-usado).toFixed(2);
+                      const restante=(Number(mpP.stock)-usado).toFixed(2);
                       return <div style={{background:"#12100e",border:"1px solid #2a2018",padding:"9px 12px",fontSize:10,display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                         <div><div style={{color:"#4a3a2a",fontSize:9,letterSpacing:1,marginBottom:2}}>PROD. DISPONIBLE</div><div style={{color:"#c8833a"}}>{mpP.stock} {mpP.unidad}</div></div>
                         <div><div style={{color:"#4a3a2a",fontSize:9,letterSpacing:1,marginBottom:2}}>A DESCONTAR</div><div style={{color:"#ef4444"}}>−{usado} {mpP.unidad}</div></div>
