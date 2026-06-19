@@ -3,8 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 
 // ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
 // Reemplaza con tus valores de Supabase → Project Settings → API
-const SUPABASE_URL  = "https://hvkswkpuphhiskxqrrke.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2a3N3a3B1cGhoaXNreHFycmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTc2MTEsImV4cCI6MjA5NDE5MzYxMX0.vB2v-AivuGgxE-eb_YyUvw56RfGmsG2z_OtWXD7K4Bg";
+const SUPABASE_URL  = "https://TU_PROJECT_ID.supabase.co";
+const SUPABASE_ANON = "TU_ANON_PUBLIC_KEY";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
@@ -15,6 +15,8 @@ const hoy = () => new Date().toISOString().split("T")[0];
 
 // ─── CREDENCIALES (Supabase Auth) ─────────────────────────────────────────────
 // Estas cuentas deben crearse en Supabase → Authentication → Users
+// admin@lacompania.cl   / admin123   → user_metadata: { rol: "admin",   nombre: "Administrador"   }
+// cocina@lacompania.cl  / cocina123  → user_metadata: { rol: "usuario",  nombre: "Usuario Cocina"  }
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
 function Login({ onLogin }) {
@@ -252,6 +254,40 @@ function Sistema({ sesion, onLogout }) {
     await rePor(); setGuardando(false);
   };
 
+  // ── Eliminar movimiento Producto (con reversión de stock) ───────────────────
+  const eliminarMovMP = async (m) => {
+    if (!window.confirm(`¿Eliminar este movimiento?\n\n${m.tipo.toUpperCase()} · ${m.nombre} · ${m.cantidad} ${m.unidad}\n\nEl stock se ajustará automáticamente.`)) return;
+    setGuardando(true);
+    const prod = mp.find(p=>p.nombre===m.nombre);
+    if (prod) {
+      const nuevoStock = m.tipo==="entrada" ? Math.max(0,prod.stock-m.cantidad) : prod.stock+m.cantidad;
+      await supabase.from("productos").update({stock:nuevoStock}).eq("id",prod.id);
+    }
+    await supabase.from("movimientos_mp").delete().eq("id",m.id);
+    await Promise.all([reMP(),reMMP()]);
+    mostrar("Movimiento eliminado y stock revertido.");
+    setGuardando(false);
+  };
+
+  // ── Eliminar movimiento Porción (con reversión de stock) ────────────────────
+  const eliminarMovPor = async (m) => {
+    if (!window.confirm(`¿Eliminar este movimiento?\n\n${m.tipo.toUpperCase()} · ${m.nombre} · ${m.cantidad} ${m.unidad}\n\nEl stock se ajustará automáticamente.`)) return;
+    setGuardando(true);
+    const por = porción.find(p=>p.nombre===m.nombre);
+    if (por) {
+      const nuevoStock = m.tipo==="proceso" ? Math.max(0,por.stock-m.cantidad) : por.stock+m.cantidad;
+      await supabase.from("porciones").update({stock:nuevoStock}).eq("id",por.id);
+    }
+    if (m.tipo==="proceso" && m.mp_usada && m.cant_mp>0) {
+      const prodUsado = mp.find(p=>p.nombre===m.mp_usada);
+      if (prodUsado) await supabase.from("productos").update({stock:prodUsado.stock+m.cant_mp}).eq("id",prodUsado.id);
+    }
+    await supabase.from("movimientos_por").delete().eq("id",m.id);
+    await Promise.all([reMP(),rePor(),reMPor()]);
+    mostrar("Movimiento eliminado y stock revertido.");
+    setGuardando(false);
+  };
+
   const tabs = esAdmin
     ?[["movimientos","Movimientos"],["mp","Producto"],["porciones","Porción"],["responsables","Responsables"],["categorias","Categorías"],["informes","Informes"]]
     :[["mp","Producto"],["porciones","Porción"]];
@@ -418,8 +454,8 @@ function Sistema({ sesion, onLogout }) {
         {/* ═══ MOVIMIENTOS */}
         {vista==="movimientos"&&esAdmin&&(
           <div style={{display:"grid",gap:22}}>
-            {[{title:"Movimientos Producto",pill:"PRO",data:[...movMP].reverse(),tc:tcMP,cols:["Fecha","Tipo","Producto","Cant.","Turno","Responsable","Motivo","Valor"]},
-              {title:"Movimientos Porción",  pill:"POR",data:[...movPor].reverse(),tc:tcPor,cols:["Fecha","Tipo","Porción","Cant.","Prod. Usado","Cant. Prod.","Rendimiento","Turno","Responsable","Valor"]}
+            {[{title:"Movimientos Producto",pill:"PRO",data:[...movMP].reverse(),tc:tcMP,cols:["Fecha","Tipo","Producto","Cant.","Turno","Responsable","Motivo","Valor",""]},
+              {title:"Movimientos Porción",  pill:"POR",data:[...movPor].reverse(),tc:tcPor,cols:["Fecha","Tipo","Porción","Cant.","Prod. Usado","Cant. Prod.","Rendimiento","Turno","Responsable","Valor",""]}
             ].map(sec=>(
               <div key={sec.title}>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:11}}>
@@ -428,7 +464,7 @@ function Sistema({ sesion, onLogout }) {
                 </div>
                 <div className="card" style={{padding:0,overflowX:"auto"}}>
                   <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-                    <thead><tr style={{borderBottom:"1px solid #2a2018"}}>{sec.cols.map(h=><th key={h}>{h}</th>)}</tr></thead>
+                    <thead><tr style={{borderBottom:"1px solid #2a2018"}}>{sec.cols.map((h,hi)=><th key={hi}>{h}</th>)}</tr></thead>
                     <tbody>{sec.data.map((m,i)=>(
                       <tr key={m.id} className="rh" style={{background:i%2===0?"transparent":"#0d0b09",borderBottom:"1px solid #14120f"}}>
                         <td style={{color:"#6a5a4a"}}>{m.fecha}</td>
@@ -440,6 +476,9 @@ function Sistema({ sesion, onLogout }) {
                         <td style={{color:"#8a7a6a"}}>{m.turno}</td>
                         <td>{m.responsable}</td>
                         <td style={{color:m.tipo==="merma"?"#ef4444":m.tipo==="entrada"||m.tipo==="proceso"?"#22c55e":"#3b82f6",textAlign:"right"}}>{fmt(m.valor)}</td>
+                        <td style={{whiteSpace:"nowrap",textAlign:"right"}}>
+                          <button className="btn" style={{padding:"4px 9px",fontSize:10,background:"transparent",border:"1px solid #3b0a0a",color:"#ef4444",cursor:"pointer"}} disabled={guardando} onClick={()=>sec.pill==="PRO"?eliminarMovMP(m):eliminarMovPor(m)}>✕</button>
+                        </td>
                       </tr>
                     ))}</tbody>
                   </table>
