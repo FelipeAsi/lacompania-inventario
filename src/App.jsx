@@ -915,5 +915,3 @@ function Sistema({ sesion, onLogout }) {
     </div>
   );
 }
-  );
-}
