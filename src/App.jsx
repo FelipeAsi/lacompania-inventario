@@ -86,18 +86,20 @@ export default function App() {
 }
 
 // ─── HOOK SUPABASE ────────────────────────────────────────────────────────────
-function useQuery(tabla, orderBy="nombre") {
+function useQuery(tabla, orderBy="nombre", ascending=true, limite=null) {
   const [data,setData]=useState([]);
   const [cargando,setCargando]=useState(true);
 
   const cargar = useCallback(async()=>{
     setCargando(true);
-    const q = supabase.from(tabla).select("*");
-    if (orderBy) q.order(orderBy,{ascending:true});
-    const {data:rows}=await q;
-    setData(rows||[]);
+    let q = supabase.from(tabla).select("*");
+    if (orderBy) q = q.order(orderBy,{ascending});
+    if (limite) q = q.limit(limite);
+    const {data:rows,error}=await q;
+    if (error) { console.error(`Error cargando ${tabla}:`,error); setData([]); }
+    else setData(rows||[]);
     setCargando(false);
-  },[tabla,orderBy]);
+  },[tabla,orderBy,ascending,limite]);
 
   useEffect(()=>{cargar();},[cargar]);
   return {data,cargando,recargar:cargar};
@@ -109,8 +111,8 @@ function Sistema({ sesion, onLogout }) {
 
   const {data:mp,        recargar:reMP}   = useQuery("productos","nombre");
   const {data:porción,   recargar:rePor}  = useQuery("porciones","nombre");
-  const {data:movMP,     recargar:reMMP}  = useQuery("movimientos_mp","created_at");
-  const {data:movPor,    recargar:reMPor} = useQuery("movimientos_por","created_at");
+  const {data:movMP,     recargar:reMMP}  = useQuery("movimientos_mp","created_at",false,5000);
+  const {data:movPor,    recargar:reMPor} = useQuery("movimientos_por","created_at",false,5000);
   const {data:responsables, recargar:reResp} = useQuery("responsables","nombre");
   const {data:catMP,     recargar:reCatMP}  = useQuery("categorias_mp","nombre");
   const {data:catPor,    recargar:reCatPor} = useQuery("categorias_por","nombre");
@@ -458,8 +460,8 @@ function Sistema({ sesion, onLogout }) {
         {/* ═══ MOVIMIENTOS */}
         {vista==="movimientos"&&esAdmin&&(
           <div style={{display:"grid",gap:22}}>
-            {[{title:"Movimientos Producto",pill:"PRO",data:[...movMP].reverse(),tc:tcMP,cols:["Fecha","Tipo","Producto","Cant.","Turno","Responsable","Motivo","Valor",""]},
-              {title:"Movimientos Porción",  pill:"POR",data:[...movPor].reverse(),tc:tcPor,cols:["Fecha","Tipo","Porción","Cant.","Prod. Usado","Cant. Prod.","Rendimiento","Turno","Responsable","Valor",""]}
+            {[{title:"Movimientos Producto",pill:"PRO",data:movMP,tc:tcMP,cols:["Fecha","Tipo","Producto","Cant.","Turno","Responsable","Motivo","Valor",""]},
+              {title:"Movimientos Porción",  pill:"POR",data:movPor,tc:tcPor,cols:["Fecha","Tipo","Porción","Cant.","Prod. Usado","Cant. Prod.","Rendimiento","Turno","Responsable","Valor",""]}
             ].map(sec=>(
               <div key={sec.title}>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:11}}>
@@ -911,5 +913,7 @@ function Sistema({ sesion, onLogout }) {
 
       {alerta&&<div className="alerta" style={{background:alerta.tipo==="ok"?"#052e16":"#2a0a0a",border:`1px solid ${alerta.tipo==="ok"?"#22c55e40":"#ef444440"}`,color:alerta.tipo==="ok"?"#22c55e":"#ef4444"}}>{alerta.tipo==="ok"?"✓":"⚠"} {alerta.msg}</div>}
     </div>
+  );
+}
   );
 }
